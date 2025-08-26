@@ -13,21 +13,29 @@ import { signIn } from '../services/auth';
 
 export default function Root() {
   const { user, setUser, loading, setLoading } = useAuth();
-
 useEffect(() => {
   (async () => {
     try {
+      setLoading(true);
       const email = await AsyncStorage.getItem('user_email');
       const password = await AsyncStorage.getItem('user_password');
 
-      if (email && password) {
+      let user = null;
+      try {
+        // Check if a session already exists
+        user = await getCurrentUser();
+      } catch (err) {
+        console.log('No active session, attempting to restore:', err);
+      }
+
+      if (!user && email && password) {
         console.log('Restoring session for', email);
         await signIn(email, password);
-        } else {
-        console.log('No stored credentials');
-        }
+        user = await getCurrentUser();
+      } else if (!user) {
+        console.log('No stored credentials or active session');
+      }
 
-      const user = await getCurrentUser();
       setUser(user);
     } catch (err) {
       console.log('Auth restore error:', err);
@@ -37,6 +45,7 @@ useEffect(() => {
     }
   })();
 }, []);
+ 
 
 
 
@@ -50,3 +59,5 @@ useEffect(() => {
     </ThemeProvider>
   );
 }
+
+

@@ -6,22 +6,37 @@ import { useAuth } from '../store/authStore';
 const DB_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!;
 
 export async function signUp(name: string, phone: string, role: 'worker'|'employer', email: string, password: string) {
-  
+  try {
+    await account.deleteSessions();
+
     const user = await account.create(ID.unique(), email, password, name);
-  await account.createEmailPasswordSession(email, password);
-  
-  await db.createDocument(DB_ID, usersCol, user.$id, {
-    name, phone, role, verified: false, rating: 0, ratingsCount: 0
-  });
+    await account.createEmailPasswordSession(email, password);
 
-  await AsyncStorage.setItem('user_email', email);
-  await AsyncStorage.setItem('user_password', password);
+    try {
+      await db.createDocument(DB_ID, usersCol, user.$id, {
+        name, phone, role, verified: false, rating: 0, ratingsCount: 0
+      });
+    } catch (err) {
+      console.error('Failed to create user document:', err);
+    }
 
-  return getCurrentUser();
+    await AsyncStorage.setItem('user_email', email);
+    await AsyncStorage.setItem('user_password', password);
+
+    return getCurrentUser();
+  } catch (error) {
+    console.error('Sign-up failed:', error);
+    throw error;
+  }
 }
+
 
 export async function signIn(email: string, password: string) {
   try {
+
+   // Delete any existing sessions to avoid conflicts
+    await account.deleteSessions();
+    
     await account.createEmailPasswordSession(email, password);
     await AsyncStorage.setItem('user_email', email);
     await AsyncStorage.setItem('user_password', password);
@@ -35,7 +50,15 @@ export async function signIn(email: string, password: string) {
 export async function getCurrentUser() {
   try {
     const a = await account.get();
-    const doc = await db.getDocument(DB_ID, usersCol, a.$id);
+    let doc;
+    try {
+      doc = await db.getDocument(DB_ID, usersCol, a.$id);
+    } catch (error) {
+      console.warn('No document found for user, creating default profile...');
+      doc = await db.createDocument(DB_ID, usersCol, a.$id, {
+        name: a.name, phone: '', role: 'worker', verified: false, rating: 0, ratingsCount: 0
+      });
+    }
     return {
       id: a.$id,
       name: a.name,
@@ -43,7 +66,7 @@ export async function getCurrentUser() {
       phone: doc.phone,
       verified: doc.verified,
       rating: doc.rating,
-      ratingsCount: doc.ratingsCount
+      ratingsCount: doc.ratingsCount,
     };
   } catch (error) {
     console.error('getCurrentUser error:', error);
@@ -51,8 +74,10 @@ export async function getCurrentUser() {
   }
 }
 
+
 export async function signOut() {
   await account.deleteSessions();
   await AsyncStorage.multiRemove(['user_email', 'user_password']);
   useAuth.getState().setUser(null);
 }
+
