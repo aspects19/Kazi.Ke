@@ -8,7 +8,8 @@ import { useAuth } from '../store/authStore';
 import { theme } from '../theme/rne';
 import { getCurrentUser } from '../services/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { setAuthToken } from '../services/appwrite';
+// import { setAuthToken } from '../services/appwrite';
+import { signIn } from '../services/auth';
 
 export default function Root() {
   const { user, setUser, loading, setLoading } = useAuth();
@@ -20,8 +21,11 @@ useEffect(() => {
       const password = await AsyncStorage.getItem('user_password');
 
       if (email && password) {
-        await signIn(email, password); // recreate Appwrite session
-      }
+        console.log('Restoring session for', email);
+        await signIn(email, password);
+        } else {
+        console.log('No stored credentials');
+        }
 
       const user = await getCurrentUser();
       setUser(user);

@@ -14,8 +14,8 @@ const client = new Client().setEndpoint(endpoint).setProject(project);
 export const account = new Account(client);
 export const db = new Databases(client);
 
-export function setAuthToken(token: string | null) {
-  if (token) client.setJWT(token);
-}
+// export function setAuthToken(token: string | null) {
+//   if (token) client.setJWT(token);
+//}
 
 export { ID, Query };
