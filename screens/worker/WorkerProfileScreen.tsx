@@ -1,77 +1,98 @@
 
 // screens/worker/WorkerProfileScreen.tsx
-import React, { useEffect, useState } from 'react';
-import { ScrollView, View } from 'react-native';
-import { Avatar, Card, Text, Input, Button, Divider } from 'react-native-elements';
-import { getMyProfile, updateMyProfile, listVerifiedReviewsForWorker } from '../../services/users';
+
+import React, { useState } from 'react';
+import { View, Text, Alert } from 'react-native';
+import { Button, Input, Card, Avatar, Divider } from '@rneui/themed';
+import { useAuth } from '../../store/authStore';
+import { updateProfile, signOut } from '../../services/auth';
 import RatingStars from '../../components/RatingStars';
 import VerifiedBadge from '../../components/VerifiedBadge';
 
 export default function WorkerProfileScreen() {
-  const [me, setMe] = useState<any>(null);
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [reviews, setReviews] = useState<any[]>([]);
+  const { user: me } = useAuth();
+  const [name, setName] = useState(me?.name || '');
+  const [phone, setPhone] = useState(me?.phone || '');
   const [saving, setSaving] = useState(false);
-
-  async function load() {
-    const p = await getMyProfile();
-    setMe(p);
-    setName(p?.name ?? '');
-    setPhone(p?.phone ?? '');
-    const r = await listVerifiedReviewsForWorker(p.id);
-    setReviews(r);
-  }
-
-  useEffect(() => { load(); }, []);
+  const [loadingLogout, setLoadingLogout] = useState(false);
 
   async function save() {
-    setSaving(true);
     try {
-      await updateMyProfile({ name, phone });
-      await load();
+      setSaving(true);
+      await updateProfile({ name, phone });
+      Alert.alert('Success', 'Profile updated successfully!');
+    } catch (err: any) {
+      console.error(err);
+      Alert.alert('Error', err.message || 'Failed to update profile');
     } finally {
       setSaving(false);
     }
   }
 
-  if (!me) return null;
+  function confirmLogout() {
+    Alert.alert(
+      'Confirm Logout',
+      'Are you sure you want to log out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Logout', style: 'destructive', onPress: handleLogout },
+      ]
+    );
+  }
+
+  async function handleLogout() {
+    try {
+      setLoadingLogout(true);
+      await signOut(); // Clears sessions, JWT, and resets user in Zustand store
+    } catch (err: any) {
+      console.error('Logout error:', err);
+      Alert.alert('Error', 'Failed to log out. Please try again.');
+    } finally {
+      setLoadingLogout(false);
+    }
+  }
+
+  if (!me) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 12, gap: 12 }}>
+    <View style={{ flex: 1, padding: 16 }}>
       <Card containerStyle={{ borderRadius: 16 }}>
         <View style={{ alignItems: 'center', gap: 8 }}>
           <Avatar rounded size="large" title={me.name?.[0] ?? 'U'} />
-          <Text h4>{me.name}</Text>
+          <Text style={{ fontSize: 20, fontWeight: '600' }}>{me.name}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <RatingStars value={me.rating ?? 0} />
             {me.verified && <VerifiedBadge />}
             <Text>({me.ratingsCount ?? 0})</Text>
           </View>
         </View>
+
         <Divider style={{ marginVertical: 12 }} />
+
         <Input label="Name" value={name} onChangeText={setName} />
         <Input label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-        <Button title={saving ? 'Saving...' : 'Save'} onPress={save} disabled={saving} />
-      </Card>
+        <Button
+          title={saving ? 'Saving...' : 'Save'}
+          onPress={save}
+          disabled={saving}
+        />
 
-      <Card containerStyle={{ borderRadius: 16 }}>
-        <Card.Title>Verified Reviews</Card.Title>
-        <Card.Divider />
-        {reviews.length === 0 ? (
-          <Text>No verified reviews yet.</Text>
-        ) : (
-          reviews.map((r) => (
-            <View key={r.$id} style={{ marginBottom: 12 }}>
-              <RatingStars value={r.rating} />
-              <Text style={{ marginTop: 6 }}>{r.comment}</Text>
-              <Text style={{ opacity: 0.6, marginTop: 4 }}>
-                From employer • {new Date(r.createdAt).toLocaleDateString()}
-              </Text>
-            </View>
-          ))
-        )}
+        <Button
+          title={loadingLogout ? 'Logging out...' : 'Logout'}
+          type="outline"
+          onPress={confirmLogout}
+          buttonStyle={{ borderColor: 'red' }}
+          titleStyle={{ color: 'red' }}
+          containerStyle={{ marginTop: 16 }}
+          disabled={loadingLogout}
+        />
       </Card>
-    </ScrollView>
+    </View>
   );
 }

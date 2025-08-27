@@ -16,3 +16,4 @@ export const account = new Account(client);
 export const db = new Databases(client);
 
 export { ID, Query };
+
