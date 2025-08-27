@@ -1,3 +1,4 @@
+
 // services/appwrite.ts
 import { Client, Account, Databases, ID, Query } from 'appwrite';
 
@@ -9,13 +10,9 @@ export const jobsCol = process.env.EXPO_PUBLIC_JOBS_COLLECTION_ID!;
 export const appsCol = process.env.EXPO_PUBLIC_APPLICATIONS_COLLECTION_ID!;
 export const reviewsCol = process.env.EXPO_PUBLIC_REVIEWS_COLLECTION_ID!;
 
-const client = new Client().setEndpoint(endpoint).setProject(project);
+export const client = new Client().setEndpoint(endpoint).setProject(project);
 
 export const account = new Account(client);
 export const db = new Databases(client);
-
-// export function setAuthToken(token: string | null) {
-//   if (token) client.setJWT(token);
-//}
 
 export { ID, Query };

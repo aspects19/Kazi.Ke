@@ -1,3 +1,4 @@
+
 // screens/auth/SignUpScreen.tsx
 import React, { useState } from 'react';
 import { ScrollView, View } from 'react-native';
@@ -70,3 +71,4 @@ export default function SignUpScreen({ navigation }: any) {
     </ScrollView>
   );
 }
+
