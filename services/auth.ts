@@ -170,7 +170,8 @@ export async function signOut() {
     await AsyncStorage.removeItem(EMAIL_KEY);
     await AsyncStorage.removeItem(PASS_KEY);
     client.setJWT('');
-    useAuth.getState().setUser(null);
+    //useAuth.getState().setUser(null);
+    
   } catch (error) {
     console.error('Sign-out failed:', error);
   }

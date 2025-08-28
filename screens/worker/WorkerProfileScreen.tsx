@@ -8,9 +8,14 @@ import { useAuth } from '../../store/authStore';
 import { updateProfile, signOut } from '../../services/auth';
 import RatingStars from '../../components/RatingStars';
 import VerifiedBadge from '../../components/VerifiedBadge';
+import { useNavigation } from '@react-navigation/native'; // ✅ Import this
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { AuthStackParamList } from '../../app/AuthNavigator';
 
 export default function WorkerProfileScreen() {
-  const { user: me } = useAuth();
+  const { user: me, setUser } = useAuth();
+  const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>(); // ✅ Typed navigation
+
   const [name, setName] = useState(me?.name || '');
   const [phone, setPhone] = useState(me?.phone || '');
   const [saving, setSaving] = useState(false);
@@ -43,7 +48,12 @@ export default function WorkerProfileScreen() {
   async function handleLogout() {
     try {
       setLoadingLogout(true);
-      await signOut(); // Clears sessions, JWT, and resets user in Zustand store
+      await signOut();
+      setUser(null); // ✅ triggers Root re-render
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'SignIn' }], // ✅ Auth stack route
+      });
     } catch (err: any) {
       console.error('Logout error:', err);
       Alert.alert('Error', 'Failed to log out. Please try again.');
@@ -77,11 +87,7 @@ export default function WorkerProfileScreen() {
 
         <Input label="Name" value={name} onChangeText={setName} />
         <Input label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-        <Button
-          title={saving ? 'Saving...' : 'Save'}
-          onPress={save}
-          disabled={saving}
-        />
+        <Button title={saving ? 'Saving...' : 'Save'} onPress={save} disabled={saving} />
 
         <Button
           title={loadingLogout ? 'Logging out...' : 'Logout'}
